@@ -27,6 +27,7 @@ let lastInside = false;
 let userHidden = false;
 let discordFocused = false;
 let hideWhenDiscordFocused = true;
+let hideFromCapture = false;
 /** Gap kept between the window and the screen edges it snaps to */
 let margin = 8;
 let pendingBounds: Rectangle | null = null;
@@ -167,6 +168,8 @@ function onWindowCreated(_: unknown, w: BrowserWindow) {
     w.setSkipTaskbar(true);
     w.setAlwaysOnTop(true, "screen-saver");
     w.setIgnoreMouseEvents(true, { forward: true });
+    // Keeps the overlay out of screen shares and recordings (WDA_EXCLUDEFROMCAPTURE on Windows)
+    w.setContentProtection(hideFromCapture);
     // Chromium can mark this window hidden (occlusion) while it's on screen; Discord then stops receiving video
     // after 30s (WindowVisibilityVideoManager) and the camera freezes. This keeps the page "visible"
     w.webContents.setBackgroundThrottling(false);
@@ -226,8 +229,12 @@ export function prepare(_: IpcMainInvokeEvent, bounds: Rectangle | null, newAspe
     aspect = newAspect;
 }
 
-export function setOptions(_: IpcMainInvokeEvent, opts: { hideWhenDiscordFocused?: boolean; edgeMargin?: number; }) {
+export function setOptions(_: IpcMainInvokeEvent, opts: { hideWhenDiscordFocused?: boolean; hideFromCapture?: boolean; edgeMargin?: number; }) {
     hideWhenDiscordFocused = opts.hideWhenDiscordFocused ?? hideWhenDiscordFocused;
+    if (opts.hideFromCapture != null) {
+        hideFromCapture = opts.hideFromCapture;
+        if (win && !win.isDestroyed()) win.setContentProtection(hideFromCapture);
+    }
     if (opts.edgeMargin != null && opts.edgeMargin !== margin) {
         margin = opts.edgeMargin;
         // A window docked to an edge moves to the new gap right away

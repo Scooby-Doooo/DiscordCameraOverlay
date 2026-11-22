@@ -148,7 +148,7 @@ export default definePlugin({
 
     async start() {
         await Native.init();
-        await Native.setOptions({ hideWhenDiscordFocused: settings.store.hideWhenDiscordFocused, edgeMargin: Math.round(settings.store.edgeMargin) });
+        await Native.setOptions({ hideWhenDiscordFocused: settings.store.hideWhenDiscordFocused, hideFromCapture: settings.store.hideFromScreenShare, edgeMargin: Math.round(settings.store.edgeMargin) });
         await applyHotkeys();
         for (const store of watchedStores()) store.addChangeListener(update);
         update();

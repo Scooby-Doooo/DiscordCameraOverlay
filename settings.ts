@@ -93,6 +93,12 @@ export const settings = definePluginSettings({
         default: true,
         onChange: (value: boolean) => Native.setOptions({ hideWhenDiscordFocused: value })
     },
+    hideFromScreenShare: {
+        type: OptionType.BOOLEAN,
+        description: "Hide the overlay from screen shares and recordings (it stays visible on your own screen)",
+        default: false,
+        onChange: (value: boolean) => Native.setOptions({ hideFromCapture: value })
+    },
     toggleHotkey: {
         type: OptionType.STRING,
         description: `Global shortcut to hide / show the overlay. ${hotkeyHint}`,
