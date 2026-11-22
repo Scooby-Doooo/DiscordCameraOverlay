@@ -1,0 +1,6 @@
+{
+    // The plugin is linked into Equicord's src/userplugins; this makes the @utils/@api aliases resolve from here too
+    "extends": "../Equicord/tsconfig.json",
+    "compilerOptions": { "rootDir": "..", "noEmit": true },
+    "include": ["*.ts", "*.tsx", "../Equicord/src/**/*.d.ts"]
+}
