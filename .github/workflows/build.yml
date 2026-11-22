@@ -26,12 +26,12 @@ jobs:
 
         steps:
             - name: Check out Equicord
-              uses: actions/checkout@v4
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   repository: Equicord/Equicord
 
             - name: Check out CameraOverlay
-              uses: actions/checkout@v4
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   path: src/userplugins/cameraOverlay.desktop
 
