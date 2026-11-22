@@ -15,15 +15,17 @@
     if (-not $app) { throw "Discord is not installed in $discordDir" }
 
     Write-Host "Downloading Equicord with CameraOverlay..."
-    $download = Join-Path $env:TEMP "equicord-cameraoverlay.asar"
+    New-Item -ItemType Directory -Force "$dataDir\settings" | Out-Null
+    # Not %TEMP%: with a non-Latin user name it can be an 8.3 path (C:\Users\5B3B~1\...) that Move-Item fails to resolve
+    $download = "$dataDir\equicord.asar.download"
     Invoke-WebRequest "https://github.com/__REPO__/releases/latest/download/desktop.asar" -OutFile $download -UseBasicParsing
 
     # Discord keeps the asar open while running
     $running = Get-Process Discord -ErrorAction SilentlyContinue
     if ($running) { $running | Stop-Process -Force; Start-Sleep -Seconds 3 }
 
-    New-Item -ItemType Directory -Force "$dataDir\settings" | Out-Null
-    Move-Item $download "$dataDir\equicord.asar" -Force
+    [IO.File]::Copy($download, "$dataDir\equicord.asar", $true)
+    [IO.File]::Delete($download)
 
     # Turn the plugin and auto-update on: updates come from this repository's releases, which include the plugin
     $settingsFile = "$dataDir\settings\settings.json"
