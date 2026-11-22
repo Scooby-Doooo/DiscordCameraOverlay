@@ -1,0 +1,82 @@
+# Builds the latest Equicord with CameraOverlay built in and publishes it as the "latest" release.
+# Installs made by installer/install.ps1 auto-update from this release.
+name: Build
+
+on:
+    push:
+        branches: [main]
+    schedule:
+        - cron: "0 6 * * *"
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+concurrency:
+    group: build
+    cancel-in-progress: false
+
+env:
+    FORCE_COLOR: true
+    GH_TOKEN: ${{ github.token }}
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out Equicord
+              uses: actions/checkout@v4
+              with:
+                  repository: Equicord/Equicord
+
+            - name: Check out CameraOverlay
+              uses: actions/checkout@v4
+              with:
+                  path: src/userplugins/cameraOverlay.desktop
+
+            - name: Decide whether a build is needed
+              id: version
+              run: |
+                  # The updater compares the last word of the release name with the hash built into the asar
+                  hash="$(git rev-parse --short=12 HEAD)-$(git -C src/userplugins/cameraOverlay.desktop rev-parse --short=12 HEAD)"
+                  echo "hash=$hash" >> "$GITHUB_OUTPUT"
+                  current=$(gh release view latest --repo "$GITHUB_REPOSITORY" --json name --jq .name 2>/dev/null || true)
+                  if [ "${current##* }" = "$hash" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+
+            - name: Prepare sources
+              if: steps.version.outputs.skip != 'true'
+              run: |
+                  # The plugin's tsconfig points at a sibling Equicord checkout and would hide Equicord's path aliases
+                  rm src/userplugins/cameraOverlay.desktop/tsconfig.json
+
+                  # The updater lists changes via compare/<hash>...HEAD on this repo, which has no Equicord commits
+                  f=src/main/updater/http.ts
+                  grep -q 'if (!isOutdated) return \[\];' $f
+                  sed -i 's|if (!isOutdated) return \[\];|&\n    return [{ hash: "build", author: "CameraOverlay", message: "New Equicord + CameraOverlay build" }];|' $f
+
+            - name: Set up pnpm
+              if: steps.version.outputs.skip != 'true'
+              uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+              with:
+                  runtime: node@v24
+                  require-lockfile: true
+
+            - name: Build
+              if: steps.version.outputs.skip != 'true'
+              env:
+                  EQUICORD_HASH: ${{ steps.version.outputs.hash }}
+                  EQUICORD_REMOTE: ${{ github.repository }}
+              run: pnpm buildStandalone
+
+            - name: Publish release
+              if: steps.version.outputs.skip != 'true'
+              run: |
+                  mkdir release
+                  cp dist/desktop.asar release/
+                  sed "s|__REPO__|$GITHUB_REPOSITORY|" src/userplugins/cameraOverlay.desktop/installer/install.ps1 > release/install.ps1
+
+                  gh release delete latest --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes 2>/dev/null || true
+                  gh release create latest --repo "$GITHUB_REPOSITORY" --title "CameraOverlay ${{ steps.version.outputs.hash }}" \
+                      --notes "Equicord with CameraOverlay. Install: \`irm https://github.com/$GITHUB_REPOSITORY/releases/latest/download/install.ps1 | iex\`" \
+                      release/desktop.asar release/install.ps1
