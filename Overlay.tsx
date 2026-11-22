@@ -359,9 +359,11 @@ export function Overlay({ userId, streamId, win }: { userId: string; streamId: s
                         {CROP_HANDLES.map(h => <i key={h} data-h={h} />)}
                     </div>
                 )}
-                {selfStreamId && !cropping && (
+                {selfStreamId && (
                     <video
                         ref={selfRef}
+                        // Hidden, not unmounted: the stream is attached once per selfStreamId, a remounted element would stay empty
+                        hidden={cropping}
                         className={classes("co-self", selfBig && "big")}
                         title={selfBig ? "Click to shrink" : "Click to enlarge"}
                         autoPlay
